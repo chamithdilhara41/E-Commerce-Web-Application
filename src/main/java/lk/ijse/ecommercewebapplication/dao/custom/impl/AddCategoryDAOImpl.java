@@ -6,7 +6,10 @@ import org.apache.commons.dbcp.BasicDataSource;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class AddCategoryDAOImpl implements AddCategoryDAO {
     @Override
@@ -22,6 +25,24 @@ public class AddCategoryDAOImpl implements AddCategoryDAO {
             }
             return pstmt.executeUpdate() > 0;
         }
+    }
+
+    @Override
+    public List<String> getAllCategoryNames(BasicDataSource ds) throws Exception {
+        List<String> categoryNames = new ArrayList<>();
+        String query = "SELECT name FROM categories"; // Fetch only category names
+
+        try (Connection connection = ds.getConnection();
+             PreparedStatement pstmt = connection.prepareStatement(query);
+             ResultSet resultSet = pstmt.executeQuery()) {
+
+            while (resultSet.next()) {
+                String name = resultSet.getString("name");
+                categoryNames.add(name);
+            }
+        }
+
+        return categoryNames;
     }
 
     @Override

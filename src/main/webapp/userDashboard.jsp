@@ -1,3 +1,5 @@
+<%@ page import="java.sql.*" %>
+<%@ page import="java.util.Base64" %>
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <!DOCTYPE html>
 <html lang="en">
@@ -287,13 +289,47 @@
 <div class="container py-5">
     <h2 class="mb-4 text-center">Featured Products</h2>
     <div class="row">
-        <!-- Product cards -->
+        <%
+            // Database connection setup
+            String dbUrl = "jdbc:mysql://localhost:3307/ecommerce";
+            String dbUser = "root";
+            String dbPassword = "Ijse@123";
+
+            Connection connection = null;
+            PreparedStatement pstmt = null;
+            ResultSet resultSet = null;
+
+            String query1 = "SELECT id, name, category, price, qty, image FROM products";
+            try {
+                // Initialize the connection
+                Class.forName("com.mysql.cj.jdbc.Driver");
+                connection = DriverManager.getConnection(dbUrl, dbUser, dbPassword);
+
+                // Execute query
+                pstmt = connection.prepareStatement(query1);
+                resultSet = pstmt.executeQuery();
+
+                // Loop through results and generate product cards
+                while (resultSet.next()) {
+                    int id = resultSet.getInt("id");
+                    String name = resultSet.getString("name");
+                    double price = resultSet.getDouble("price");
+                    Blob imageBlob = resultSet.getBlob("image");
+
+                    // Convert image blob to Base64 string
+                    String base64Image = "";
+                    if (imageBlob != null) {
+                        byte[] imageBytes = imageBlob.getBytes(1, (int) imageBlob.length());
+                        base64Image = Base64.getEncoder().encodeToString(imageBytes);
+                    }
+        %>
+        <!-- Product Card -->
         <div class="col-md-3 mb-4">
             <div class="card">
-                <img src="jacket.jpg" class="card-img-top" alt="Jacket" style="height: 300px; object-fit: cover;">
+                <img src="<%= !base64Image.isEmpty() ? "data:image/jpeg;base64," + base64Image : "default-image.jpg" %>" class="card-img-top" alt="<%= name %>" style="height: 300px; object-fit: cover;">
                 <div class="card-body">
-                    <h6 class="card-title">Men's Winter Leather Jacket</h6>
-                    <p class="text-muted">$48.00</p>
+                    <h6 class="card-title"><%= name %></h6>
+                    <p class="text-muted">$<%= String.format("%.2f", price) %></p>
                     <div class="d-grid gap-2">
                         <a href="#" class="btn btn-primary">Buy Now</a>
                         <a href="#" class="btn btn-outline-secondary">Add to Cart</a>
@@ -301,61 +337,20 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-3 mb-4">
-            <div class="card">
-                <img src="jacket.jpg" class="card-img-top" alt="Jacket" style="height: 300px; object-fit: cover;">
-                <div class="card-body">
-                    <h6 class="card-title">Men's Winter Leather Jacket</h6>
-                    <p class="text-muted">$48.00</p>
-                    <div class="d-grid gap-2">
-                        <a href="#" class="btn btn-primary">Buy Now</a>
-                        <a href="#" class="btn btn-outline-secondary">Add to Cart</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3 mb-4">
-            <div class="card">
-                <img src="jacket.jpg" class="card-img-top" alt="Jacket" style="height: 300px; object-fit: cover;">
-                <div class="card-body">
-                    <h6 class="card-title">Men's Winter Leather Jacket</h6>
-                    <p class="text-muted">$48.00</p>
-                    <div class="d-grid gap-2">
-                        <a href="#" class="btn btn-primary">Buy Now</a>
-                        <a href="#" class="btn btn-outline-secondary">Add to Cart</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3 mb-4">
-            <div class="card">
-                <img src="jacket.jpg" class="card-img-top" alt="Jacket" style="height: 300px; object-fit: cover;">
-                <div class="card-body">
-                    <h6 class="card-title">Men's Winter Leather Jacket</h6>
-                    <p class="text-muted">$48.00</p>
-                    <div class="d-grid gap-2">
-                        <a href="#" class="btn btn-primary">Buy Now</a>
-                        <a href="#" class="btn btn-outline-secondary">Add to Cart</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3 mb-4">
-            <div class="card">
-                <img src="jacket.jpg" class="card-img-top" alt="Jacket" style="height: 300px; object-fit: cover;">
-                <div class="card-body">
-                    <h6 class="card-title">Men's Winter Leather Jacket</h6>
-                    <p class="text-muted">$48.00</p>
-                    <div class="d-grid gap-2">
-                        <a href="#" class="btn btn-primary">Buy Now</a>
-                        <a href="#" class="btn btn-outline-secondary">Add to Cart</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <!-- More product cards... -->
+        <%
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            } finally {
+                // Close resources
+                if (resultSet != null) try { resultSet.close(); } catch (SQLException ignored) {}
+                if (pstmt != null) try { pstmt.close(); } catch (SQLException ignored) {}
+                if (connection != null) try { connection.close(); } catch (SQLException ignored) {}
+            }
+        %>
     </div>
 </div>
+
 
 <!-- Footer -->
 <footer class="footer">

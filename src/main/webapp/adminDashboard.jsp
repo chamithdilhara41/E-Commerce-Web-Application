@@ -2,7 +2,8 @@
 <%@ page import="java.util.List" %>
 <%@ page import="lk.ijse.ecommercewebapplication.entity.Product" %>
 <%@ page import="lk.ijse.ecommercewebapplication.entity.Category" %>
-<%@ page import="java.sql.*" %><%--
+<%@ page import="java.sql.*" %>
+<%@ page import="java.util.Base64" %><%--
   Created by IntelliJ IDEA.
   User: Chamith
   Date: 1/21/2025
@@ -23,6 +24,8 @@
     <%-- sweetalert2 --%>
     <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.14.4/dist/sweetalert2.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
     <style>
         .card {
@@ -79,8 +82,6 @@
         </div>
     </div>
 </nav>
-
-
 
 <!-- Main Content -->
 <section id="dashboard" class="section-content">
@@ -166,136 +167,255 @@
         <!-- Page Header -->
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h1 class="h3">Manage Products</h1>
-            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addProductModal">Add New Product</button>
+            <button class="btn btn-primary" data-bs-toggle="modal" onclick="loadCategories()" data-bs-target="#addProductModal">Add New Product</button>
         </div>
 
         <!-- Product Table -->
-        <table class="table table-striped table-hover">
+        <table class="table table-striped table-hover" border="1">
             <thead class="table-dark">
             <tr>
                 <th>#Id</th>
                 <th>Product Name</th>
                 <th>Category</th>
                 <th>Price</th>
-                <th>Stock</th>
+                <th>QTY</th>
+                <th>Image</th>
                 <th>Actions</th>
             </tr>
             </thead>
             <tbody>
-            <!-- Dynamic rows for products -->
             <%
-                // Sample loop to display products (replace with dynamic data from backend)
-                List<Product> products = (List<Product>) request.getAttribute("products");
-                if (products != null) {
-                    for (Product product : products) {
+                // Database connection setup
+                String dbUrl = "jdbc:mysql://localhost:3307/ecommerce";
+                String dbUser = "root";
+                String dbPassword = "Ijse@123";
+
+                Connection connection = null;
+                PreparedStatement pstmt = null;
+                ResultSet resultSet = null;
+
+                String query1 = "SELECT id, name, category, price, qty, image FROM products";
+                try {
+                    // Initialize the connection
+                    Class.forName("com.mysql.cj.jdbc.Driver");
+                    connection = DriverManager.getConnection(dbUrl, dbUser, dbPassword);
+
+                    // Execute query
+                    pstmt = connection.prepareStatement(query1);
+                    resultSet = pstmt.executeQuery();
+
+                    // Loop through results and generate rows
+                    while (resultSet.next()) {
+                        int id = resultSet.getInt("id");
+                        String name = resultSet.getString("name");
+                        String category = resultSet.getString("category");
+                        double price = resultSet.getDouble("price");
+                        int qty = resultSet.getInt("qty");
+                        Blob imageBlob = resultSet.getBlob("image");
+
+                        // Convert image blob to Base64 string
+                        String base64Image = "";
+                        if (imageBlob != null) {
+                            byte[] imageBytes = imageBlob.getBytes(1, (int) imageBlob.length());
+                            base64Image = Base64.getEncoder().encodeToString(imageBytes);
+                        }
             %>
             <tr>
-                <td><%= product.getId() %></td>
-                <td><%= product.getName() %></td>
-                <td><%= product.getCategory() %></td>
-                <td><%= product.getPrice() %></td>
-                <td><%= product.getStock() %></td>
+                <td><%= id %></td>
+                <td><%= name %></td>
+                <td><%= category %></td>
+                <td>$<%= String.format("%.2f", price) %></td>
+                <td><%= qty %></td>
                 <td>
-                    <button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#editProductModal<%= product.getId() %>">Edit</button>
-                    <button class="btn btn-danger btn-sm" onclick="deleteProduct(<%= product.getId() %>)">Delete</button>
+                    <% if (!base64Image.isEmpty()) { %>
+                    <img src="data:image/jpeg;base64,<%= base64Image %>" alt="<%= name %> Image" style="max-width: 100px;">
+                    <% } else { %>
+                    No Image
+                    <% } %>
+                </td>
+                <td>
+                    <button class="btn btn-warning btn-sm edit-product-btn"
+                            data-id="<%= id %>"
+                            data-name="<%= name %>"
+                            data-category="<%= category %>"
+                            data-price="<%= price %>"
+                            data-stock="<%= qty %>"
+                            data-image="<%= base64Image %>"
+                            data-bs-toggle="modal"
+                            data-bs-target="#editProductModal"
+                    >
+                        Edit
+                    </button>
+                    <button class="btn btn-danger btn-sm delete-btn" data-id="<%= id %>">Delete</button>
                 </td>
             </tr>
-
-            <!-- Edit Product Modal -->
-            <div class="modal fade" id="editProductModal<%= product.getId() %>" tabindex="-1" aria-hidden="true">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <form action="EditProductServlet" method="post">
-                            <div class="modal-header">
-                                <h5 class="modal-title">Edit Product</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                            </div>
-                            <div class="modal-body">
-                                <input type="hidden" name="productId" value="<%= product.getId() %>">
-                                <div class="mb-3">
-                                    <label for="productName" class="form-label">Product Name</label>
-                                    <input type="text" class="form-control" name="productName" value="<%= product.getName() %>" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="category" class="form-label">Category</label>
-                                    <input type="text" class="form-control" name="category" value="<%= product.getCategory() %>" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="price" class="form-label">Price</label>
-                                    <input type="number" class="form-control" name="price" value="<%= product.getPrice() %>" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="stock" class="form-label">Stock</label>
-                                    <input type="number" class="form-control" name="stock" value="<%= product.getStock() %>" required>
-                                </div>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="submit" class="btn btn-success">Save Changes</button>
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-            <%      }
-            }
+            <%
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    //out.println("<tr><td colspan='7' style='color: red;'>Error loading products: " + e.getMessage() + "</td></tr>");
+                } finally {
+                    // Close resources
+                    if (resultSet != null) try { resultSet.close(); } catch (SQLException ignored) {}
+                    if (pstmt != null) try { pstmt.close(); } catch (SQLException ignored) {}
+                    if (connection != null) try { connection.close(); } catch (SQLException ignored) {}
+                }
             %>
             </tbody>
         </table>
-    </div>
 
-    <!-- Add Product Modal -->
-    <div class="modal fade" id="addProductModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <form action="AddProductServlet" method="post" enctype="multipart/form-data">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Add New Product</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="mb-3">
-                            <label for="productName" class="form-label">Product Name</label>
-                            <input type="text" class="form-control" name="productName" required>
+        <!-- Edit Product Modal -->
+        <div class="modal fade" id="editProductModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <form action="editProduct" method="POST" enctype="multipart/form-data">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Edit Product</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                         </div>
-                        <div class="mb-3">
-                            <label for="category" class="form-label">Category</label>
-                            <input type="text" class="form-control" name="category" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="price" class="form-label">Price</label>
-                            <input type="number" class="form-control" name="price" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="stock" class="form-label">Stock</label>
-                            <input type="number" class="form-control" name="stock" required>
-                        </div>
-                        <!-- Image Input -->
-                        <div class="mb-3">
-                            <label for="productImage" class="form-label">Product Image</label>
-                            <input type="file" class="form-control" name="productImage" accept="image/*" id="productImageInput" required>
-                            <!-- Image Preview -->
-                            <div class="mt-2">
-                                <img id="imagePreview" src="" alt="Image Preview" style="max-width: 150px; display: none;">
+                        <div class="modal-body">
+                            <input type="hidden" name="productId" id="editProductId">
+                            <div class="mb-3">
+                                <label for="editProductName" class="form-label">Product Name</label>
+                                <input type="text" class="form-control" name="productName" id="editProductName" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="editCategory" class="form-label">Category</label>
+                                <select name="category" id="editCategory" class="form-control" required>
+                                    <option value="" disabled>Select a category</option>
+                                    <%--<%
+                                        String categoryQuery = "SELECT id, name FROM categories";
+                                        pstmt = connection.prepareStatement(categoryQuery);
+                                        resultSet = pstmt.executeQuery();
+                                        while (resultSet.next()) {
+                                            int categoryId = resultSet.getInt("id");
+                                            String categoryName = resultSet.getString("name");
+                                    %>
+                                    <option value="<%= categoryId %>"><%= categoryName %></option>
+                                    <%  }
+                                    %>--%>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="editPrice" class="form-label">Price</label>
+                                <input type="number" class="form-control" name="price" id="editPrice" step="0.01" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="editQTY" class="form-label">Stock</label>
+                                <input type="number" class="form-control" name="qty" id="editQTY" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="editProductImage" class="form-label">Product Image</label>
+                                <input type="file" class="form-control" name="productImage" id="editProductImage" accept="image/*">
+                                <div class="mt-2">
+                                    <img id="editProductImagePreview" src="#" alt="Image Preview" style="max-width: 100px; display: none;">
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="submit" class="btn btn-primary">Add Product</button>
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    </div>
-                </form>
+                        <div class="modal-footer">
+                            <button type="submit" class="btn btn-success">Save Changes</button>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Product Modal -->
+        <div class="modal fade" id="addProductModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <form action="addProduct" method="POST" enctype="multipart/form-data">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Add New Product</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label for="addProductName" class="form-label">Product Name</label>
+                                <input type="text" class="form-control" name="productName" id="addProductName" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="addProductCategory" class="form-label">Category</label>
+                                <select name="category" id="addProductCategory" class="form-control" required>
+                                    <option value="" disabled selected>Select a category</option>
+                                    <!-- Categories will be dynamically populated here -->
+
+                                </select>
+                            </div>
+
+                            <script>
+                                function loadCategories() {
+                                    // Fetch categories from the servlet
+                                    fetch("addCategory")
+                                        .then(response => response.json())
+                                        .then(data => {
+                                            const categorySelect = document.getElementById("addProductCategory");
+
+                                            // Clear previous options
+                                            categorySelect.innerHTML = "";
+
+                                            // Add default "Select Category" option
+                                            const defaultOption = document.createElement("option");
+                                            defaultOption.value = "";
+                                            defaultOption.text = "Select Category";
+                                            defaultOption.disabled = true;
+                                            defaultOption.selected = true;
+                                            categorySelect.appendChild(defaultOption);
+
+                                            // Add fetched categories to the dropdown
+                                            if (data.categorySelect && data.categorySelect.length > 0) {
+                                                data.categorySelect.forEach(category => {
+                                                    const option = document.createElement("option");
+                                                    option.value = category;
+                                                    option.text = category;
+                                                    categorySelect.appendChild(option);
+                                                });
+                                            } else {
+                                                // If no categories are found, add "No Categories Available"
+                                                const noCategoriesOption = document.createElement("option");
+                                                noCategoriesOption.value = "";
+                                                noCategoriesOption.text = "No Categories Available";
+                                                noCategoriesOption.disabled = true;
+                                                categorySelect.appendChild(noCategoriesOption);
+                                            }
+                                        })
+                                        .catch(error => console.error("Error fetching categories:", error));
+                                }
+                            </script>
+                            <div class="mb-3">
+                                <label for="addPrice" class="form-label">Price</label>
+                                <input type="number" class="form-control" name="price" id="addPrice" step="0.01" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="addStock" class="form-label">Stock</label>
+                                <input type="number" class="form-control" name="qty" id="addStock" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="addProductImage" class="form-label">Product Image</label>
+                                <input type="file" class="form-control" name="productImage" id="addProductImage" accept="image/*" required>
+                                <div class="mt-2">
+                                    <img id="addProductImagePreview" src="#" alt="Image Preview" style="max-width: 100px; display: none;">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="submit" class="btn btn-primary">Add Product</button>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
 </section>
 <script>
     // Function to preview the image before upload
-    document.getElementById("productImageInput").addEventListener("change", function(event) {
+    document.getElementById("addProductImage").addEventListener("change", function(event) {
         const file = event.target.files[0];
         const reader = new FileReader();
         reader.onload = function(e) {
-            const imagePreview = document.getElementById("imagePreview");
+            const imagePreview = document.getElementById("addProductImagePreview");
             imagePreview.src = e.target.result;
             imagePreview.style.display = "block";
         };
@@ -326,14 +446,7 @@
             </thead>
             <tbody>
             <%
-                // Database connection setup
-                String dbUrl = "jdbc:mysql://localhost:3307/ecommerce";
-                String dbUser = "root";
-                String dbPassword = "Ijse@123";
 
-                Connection connection = null;
-                PreparedStatement pstmt = null;
-                ResultSet resultSet = null;
 
                 try {
                     // Load the MySQL driver
@@ -384,7 +497,7 @@
                     <!-- Delete Button -->
                     <form id="deleteForm" action="editCategory" method="GET" style="display: inline;">
                         <input type="hidden" name="deleteCategoryId" value="<%= id %>">
-                        <button type="button" class="btn btn-danger btn-sm delete-btn">Delete</button>
+                        <button type="submit" class="btn btn-danger btn-sm delete-btn">Delete</button>
                     </form>
 
                     <!-- SweetAlert2 Library -->
@@ -459,7 +572,7 @@
                                 </div>
                             </div>
                         </div>
-                        <script> 
+                        <script>
                             $('.edit-btn').on('click', function () {
                                 // Get data attributes from the clicked button
                                 const id = $(this).data('id');
@@ -571,6 +684,85 @@
     </div>
     </div>
 </section>
+
+<%-- User section --%>
+<section id="manage-users" class="section-content">
+    <div class="container mt-5">
+        <h2>User Management</h2>
+        <table class="table table-striped table-hover" border="1">
+            <thead class="table-dark">
+            <tr>
+                <th>#Id</th>
+                <th>Name</th>
+                <th>Username</th>
+                <th>Email</th>
+                <th>Mobile</th>
+                <th>Role</th>
+                <th>Actions</th>
+            </tr>
+            </thead>
+            <tbody>
+            <%
+                String query = "SELECT id, name, username, email, mobile, role FROM users";
+
+                try {
+                    // Initialize the connection
+                    Class.forName("com.mysql.cj.jdbc.Driver");
+                    connection = DriverManager.getConnection(dbUrl, dbUser, dbPassword);
+
+                    // Execute query
+                    pstmt = connection.prepareStatement(query);
+                    resultSet = pstmt.executeQuery();
+
+                    // Loop through results and generate rows
+                    while (resultSet.next()) {
+                        int id = resultSet.getInt("id");
+                        String name = resultSet.getString("name");
+                        String username = resultSet.getString("username");
+                        String email = resultSet.getString("email");
+                        String mobile = resultSet.getString("mobile");
+                        String role = resultSet.getString("role");
+            %>
+            <tr>
+                <td><%= id %></td>
+                <td><%= name %></td>
+                <td><%= username %></td>
+                <td><%= email %></td>
+                <td><%= mobile %></td>
+                <td><%= role %></td>
+                <td>
+                    <button class="btn btn-warning btn-sm edit-user-btn"
+                            data-id="<%= id %>"
+                            data-name="<%= name %>"
+                            data-username="<%= username %>"
+                            data-email="<%= email %>"
+                            data-mobile="<%= mobile %>"
+                            data-role="<%= role %>"
+                            data-bs-toggle="modal"
+                            data-bs-target="#editUserModal"
+                    >
+                        Edit
+                    </button>
+                    <button class="btn btn-danger btn-sm delete-user-btn" data-id="<%= id %>">Delete</button>
+                </td>
+            </tr>
+            <%
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    //out.println("<tr><td colspan='7' style='color: red;'>Error loading users: " + e.getMessage() + "</td></tr>");
+                } finally {
+                    // Close resources
+                    if (resultSet != null) try { resultSet.close(); } catch (SQLException ignored) {}
+                    if (pstmt != null) try { pstmt.close(); } catch (SQLException ignored) {}
+                    if (connection != null) try { connection.close(); } catch (SQLException ignored) {}
+                }
+            %>
+            </tbody>
+        </table>
+    </div>
+</section>
+
 
 <%-- single page --%>
 <script>

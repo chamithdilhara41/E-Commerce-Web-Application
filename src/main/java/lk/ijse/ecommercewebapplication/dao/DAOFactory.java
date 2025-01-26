@@ -1,9 +1,6 @@
 package lk.ijse.ecommercewebapplication.dao;
 
-import lk.ijse.ecommercewebapplication.dao.custom.impl.AddCategoryDAOImpl;
-import lk.ijse.ecommercewebapplication.dao.custom.impl.EditCategoryDAOImpl;
-import lk.ijse.ecommercewebapplication.dao.custom.impl.SignInDAOImpl;
-import lk.ijse.ecommercewebapplication.dao.custom.impl.SignUpDAOImpl;
+import lk.ijse.ecommercewebapplication.dao.custom.impl.*;
 
 public class DAOFactory {
     private static DAOFactory daoFactory;
@@ -18,7 +15,7 @@ public class DAOFactory {
     }
 
     public enum DAOTypes{
-        SIGNUP,SIGNIN,ADDCATEGORY,EDITCATEGORY
+        SIGNUP,SIGNIN,ADDCATEGORY,EDITCATEGORY,ADDPRODUCT,EDITPRODUCT
     }
 
     public SuperDAO getDAO(DAOTypes type) {
@@ -28,6 +25,8 @@ public class DAOFactory {
             case SIGNIN:return new SignInDAOImpl();
             case ADDCATEGORY:return new AddCategoryDAOImpl();
             case EDITCATEGORY:return new EditCategoryDAOImpl();
+            case ADDPRODUCT:return new AddProductDAOImpl();
+            case EDITPRODUCT:return new EditCategoryDAOImpl();
             default:return null;
         }
 

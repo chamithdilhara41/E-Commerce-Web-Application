@@ -1,10 +1,7 @@
 package lk.ijse.ecommercewebapplication.bo;
 
 
-import lk.ijse.ecommercewebapplication.bo.custom.impl.AddCategoryBOImpl;
-import lk.ijse.ecommercewebapplication.bo.custom.impl.EditCategoryBOImpl;
-import lk.ijse.ecommercewebapplication.bo.custom.impl.SignInBOImpl;
-import lk.ijse.ecommercewebapplication.bo.custom.impl.SignUpBOImpl;
+import lk.ijse.ecommercewebapplication.bo.custom.impl.*;
 
 public class BOFactory {
     private static BOFactory boFactory;
@@ -15,7 +12,7 @@ public class BOFactory {
     }
 
     public enum BOTypes {
-        SIGNUP,SIGNIN,ADDCATEGORY,EDITCATEGORY
+        SIGNUP,SIGNIN,ADDCATEGORY,EDITCATEGORY,ADDPRODUCT,EDITPRODUCT
     }
 
     public SuperBO getBO(BOTypes boType) {
@@ -31,6 +28,12 @@ public class BOFactory {
                 return new AddCategoryBOImpl();
             }
             case EDITCATEGORY -> {
+                return new EditCategoryBOImpl();
+            }
+            case ADDPRODUCT -> {
+                return new AddProductBOImpl();
+            }
+            case EDITPRODUCT -> {
                 return new EditCategoryBOImpl();
             }
             default -> {

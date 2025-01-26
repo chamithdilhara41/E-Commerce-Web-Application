@@ -1,5 +1,6 @@
 package lk.ijse.ecommercewebapplication.controller;
 
+import com.google.gson.Gson;
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.MultipartConfig;
@@ -15,8 +16,13 @@ import org.apache.commons.dbcp.BasicDataSource;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.PrintWriter;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @WebServlet(name = "AddCategoryServlet", value = "/addCategory")
+
 @MultipartConfig(
         fileSizeThreshold = 1024 * 1024 * 2, // 2MB
         maxFileSize = 1024 * 1024 * 10,      // 10MB
@@ -58,5 +64,35 @@ public class AddCategoryServlet extends HttpServlet {
             throw new RuntimeException(e);
         }
 
+    }
+    @Override
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        try {
+
+            // Retrieve the data source from the ServletContext
+            ServletContext servletContext = req.getServletContext();
+            BasicDataSource ds = (BasicDataSource) servletContext.getAttribute("dataSource");
+
+            // Fetch category names from the database
+            List<String> categories = addCategoryBO.getAllCategoryNames(ds);
+
+            resp.setContentType("application/json");
+            resp.setCharacterEncoding("UTF-8");
+
+            // Create a map to hold the categories data
+            Map<String, Object> data = new HashMap<>();
+            data.put("categorySelect", categories);  // Add categories to the response data
+
+            // Convert the map to JSON using a library like Gson
+            Gson gson = new Gson();
+            String jsonResponse = gson.toJson(data);
+
+            // Send the JSON response
+            resp.getWriter().write(jsonResponse);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            resp.sendRedirect("error.jsp"); // Redirect to an error page if something goes wrong
+        }
     }
 }

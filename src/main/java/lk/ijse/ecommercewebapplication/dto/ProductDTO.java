@@ -4,14 +4,15 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.io.InputStream;
+
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
 public class ProductDTO {
-    private int id;
     private String name;
     private String category;
     private double price;
-    private int stock;
-    private String getImageUrl; // Field to store the image path
+    private int qty;
+    private InputStream image; // Field to store the image path
 }
