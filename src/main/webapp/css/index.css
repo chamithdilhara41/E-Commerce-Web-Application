@@ -1,0 +1,18 @@
+.card {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    border: none;
+    border-radius: 10px;
+}
+.left-image img {
+    border-radius: 10px 0 0 10px;
+    object-fit: cover;
+    height: 100%;
+    width: 100%;
+}
+body {
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0;
+}
