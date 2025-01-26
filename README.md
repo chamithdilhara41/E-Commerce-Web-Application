@@ -46,3 +46,6 @@ This is a full-featured e-commerce web application developed using JavaEE, JDBC 
 1. **Clone the repository:**
    ```bash
    git clone https://github.com/yourusername/ecommerce-web-application.git
+**Youtube Video link:**
+   ```bash
+   https://youtu.be/QXoEdcJv--I
